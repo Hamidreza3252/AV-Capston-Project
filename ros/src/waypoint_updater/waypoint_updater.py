@@ -44,19 +44,59 @@ class WaypointUpdater(object):
         # Hamid: Other member variables
 
         # current pose of the ego car
-        self.pose: np.array = None
+        self.pose = None
 
-        # the base waypoints of the map
-        self.base_waypoints: np.array = None
+        # the base lane waypoints of the map
+        self.base_lane = None
 
         # these 2d (x, y) waypoints are used to efficiently find the closest waypoint to the ego car
-        self.waypoints_2d: np.array = None
+        self.waypoints_2d = None
 
         # this KDTree object is used to calculate closest waypoint to the ego vehicle
-        self.waypoints_tree: KDTree = None
+        self.waypoints_tree = None
 
+        self.loop()
 
-        rospy.spin()
+        # rospy.spin()
+
+    def loop(self):
+        rate = rospy.Rate(50)
+        
+        while (rospy.is_shutdown):
+            if (self.pose and self.base_lane):
+                # get the closest waypoint
+                closest_waypoint_index = self.get_closest_waypoint_index()
+                self.publish_waypoints(closest_waypoint_index)
+            
+            rate.sleep()
+                
+    def get_closest_waypoint_index(self):
+        x = self.pose.pose.position.x
+        y = self.pose.pose.position.y
+        closest_index = self.waypoints_tree.query([x, y], 1)[1]
+
+        # check if the closest waypoint is ahead or behind the ego vehcile
+        closest_coords = self.waypoints_2d[closest_index]
+        prev_coords = self.waypoints_2d[closest_index - 1]
+
+        # the vectors ahead and behind the ego car
+        closest_vect = np.array(closest_coords)
+        prev_vect = np.array(prev_coords)
+        pose_vect = np.array([x, y])
+
+        dot_prod = np.doc((closest_vect - prev_vect), (pose_vect - closest_vect))
+
+        if (dot_prod > 0.0):
+            closest_index = (closest_index) % len(self.waypoints_2d)
+        
+        return closest_index
+
+    def publish_waypoints(self, closest_waypoint_index: int):
+        front_lane  = Lane()
+        front_lane.header = self.base_lane.header
+        front_lane.waypoints = self.base_lane.waypoints[closest_waypoint_index : closest_waypoint_index + LOOKAHEAD_WPS]
+
+        self.final_waypoints_pub.publish(front_lane)
 
     def pose_cb(self, msg):
         # TODO: Implement
@@ -87,7 +127,7 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
-
+    
 
 if __name__ == '__main__':
     try:
