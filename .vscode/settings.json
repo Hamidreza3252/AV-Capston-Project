@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/home/hamidreza/anaconda3/envs/py-35/bin/python"
+    "python.pythonPath": "/home/hamidreza/anaconda3/envs/py35/bin/python",
+    "cmake.configureOnOpen": false
 }
