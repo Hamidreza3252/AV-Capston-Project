@@ -64,10 +64,10 @@ class WaypointUpdater(object):
         # rospy.spin()
 
     def loop(self):
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(10) # rates >10Hz cause severe lag on Udacity workspace
         
-        while (rospy.is_shutdown):
-            if (self.pose and self.base_waypoints and self.waypoint_tree and self.stopline_wp_index):
+        while not rospy.is_shutdown():
+            if (self.pose and self.base_waypoints and self.waypoints_tree and self.stopline_wp_index):
                 # get the closest waypoint
                 closest_waypoint_index = self.get_closest_waypoint_index()
                 self.publish_waypoints(closest_waypoint_index)
@@ -128,6 +128,7 @@ class WaypointUpdater(object):
     def generate_front_lane(self, closest_waypoint_index):
         front_lane  = Lane()
         front_lane.header = self.base_waypoints.header
+        front_lane.header.stamp = rospy.Time.now()
         end_waypoint_index = closest_waypoint_index + LOOKAHEAD_WPS
         ref_waypoints = self.base_waypoints.waypoints[closest_waypoint_index : end_waypoint_index]
 
